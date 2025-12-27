@@ -33,7 +33,7 @@ export class AttioService {
             const lenders = response.data
                 .filter(record => this.getAttributeValue(record.attributes, 'is_test_object') === 'Yes')
                 .map(record => ({
-                    id: record.id.record_id,
+                    id: typeof record.id === 'string' ? record.id : record.id?.record_id || record.id,
                     name: this.getAttributeValue(record.attributes, 'lender_name'),
                     focus_industries: this.getAttributeValue(record.attributes, 'test_focus_industries'),
                     loan_size_requirements: this.getAttributeValue(record.attributes, 'test_loan_size_requirements'),
@@ -76,7 +76,7 @@ export class AttioService {
             }
 
             const borrower = {
-                id: record.id.record_id,
+                id: typeof record.id === 'string' ? record.id : record.id?.record_id || record.id,
                 name: this.getAttributeValue(record.attributes, 'name'),
                 industry: this.getAttributeValue(record.attributes, 'industry'),
                 description: this.getAttributeValue(record.attributes, 'description'),
