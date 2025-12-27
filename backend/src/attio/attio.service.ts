@@ -23,29 +23,32 @@ export class AttioService {
         }
 
         try {
-            // Fetch records from 'lenders' object
-            // We filter for IS TEST RECORD = "Yes"
-            // The attribute slug for IS TEST RECORD is usually based on the title, 
-            // but in the preview it shows "is_test_object" for Lenders.
-            const response = await (this.client as any).records.list({
+            // Fetch records from 'lenders' object using Attio API
+            // The attio-js package uses records.list() method
+            const response = await this.client.records.list({
                 object: 'lenders',
             });
 
-            // Map and filter for test records in code if the API filter is complex
-            // or if we want to be safe for the MVP.
-            return response.data
+            // Filter for test records and map to our format
+            const lenders = response.data
                 .filter(record => this.getAttributeValue(record.attributes, 'is_test_object') === 'Yes')
                 .map(record => ({
-                    id: record.id,
+                    id: record.id.record_id,
                     name: this.getAttributeValue(record.attributes, 'lender_name'),
                     focus_industries: this.getAttributeValue(record.attributes, 'test_focus_industries'),
                     loan_size_requirements: this.getAttributeValue(record.attributes, 'test_loan_size_requirements'),
                     debt_products: this.getAttributeValue(record.attributes, 'test_focus_debt_products'),
                     description: this.getAttributeValue(record.attributes, 'test_focus_debt_use_cases'),
+                    arr_requirements: this.getAttributeValue(record.attributes, 'test_arr_requirements'),
+                    ltm_revenue_requirements: this.getAttributeValue(record.attributes, 'test_ltm_revenue_requirements'),
+                    geographies: this.getAttributeValue(record.attributes, 'test_focus_geographies'),
                     fit: 0 // Will be calculated by agent
                 }));
+
+            this.logger.log(`Fetched ${lenders.length} lenders from Attio`);
+            return lenders.length > 0 ? lenders : this.getMockLenders();
         } catch (error) {
-            this.logger.error(`Error fetching lenders: ${error.message}`);
+            this.logger.error(`Error fetching lenders: ${error.message}`, error.stack);
             return this.getMockLenders();
         }
     }
@@ -56,7 +59,7 @@ export class AttioService {
         }
 
         try {
-            const response = await (this.client as any).records.list({
+            const response = await this.client.records.list({
                 object: 'companies',
             });
 
@@ -67,19 +70,31 @@ export class AttioService {
                 return isTest && (rName?.toLowerCase().includes(name.toLowerCase()) || name === '');
             });
 
-            if (!record) return this.getMockBorrower(name);
+            if (!record) {
+                this.logger.warn(`Borrower not found: ${name}, using mock data`);
+                return this.getMockBorrower(name);
+            }
 
-            return {
-                id: record.id,
+            const borrower = {
+                id: record.id.record_id,
                 name: this.getAttributeValue(record.attributes, 'name'),
                 industry: this.getAttributeValue(record.attributes, 'industry'),
                 description: this.getAttributeValue(record.attributes, 'description'),
                 location: this.getAttributeValue(record.attributes, 'location'),
                 loanAmount: this.getAttributeValue(record.attributes, 'test_loan_amount'),
-                projectType: this.getAttributeValue(record.attributes, 'project_type')
+                projectType: this.getAttributeValue(record.attributes, 'project_type'),
+                // Additional fields for growth financing
+                arr: this.getAttributeValue(record.attributes, 'arr'),
+                mrr: this.getAttributeValue(record.attributes, 'mrr'),
+                growthRate: this.getAttributeValue(record.attributes, 'growth_rate'),
+                employees: this.getAttributeValue(record.attributes, 'employees'),
+                customers: this.getAttributeValue(record.attributes, 'customers'),
             };
+
+            this.logger.log(`Found borrower: ${borrower.name} from Attio`);
+            return borrower;
         } catch (error) {
-            this.logger.error(`Error finding borrower: ${error.message}`);
+            this.logger.error(`Error finding borrower: ${error.message}`, error.stack);
             return this.getMockBorrower(name);
         }
     }
