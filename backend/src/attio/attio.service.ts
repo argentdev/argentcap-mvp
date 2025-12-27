@@ -24,8 +24,8 @@ export class AttioService {
 
         try {
             // Fetch records from 'lenders' object using Attio API
-            // The attio-js package uses records.list() method
-            const response = await this.client.records.list({
+            // The attio-js package uses records.query() method
+            const response = await this.client.records.query({
                 object: 'lenders',
             });
 
@@ -59,7 +59,7 @@ export class AttioService {
         }
 
         try {
-            const response = await this.client.records.list({
+            const response = await this.client.records.query({
                 object: 'companies',
             });
 
